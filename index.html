@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ballot Journey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Theme: Vintage Newspaper */
+            --bg-color: #F5F0E8;
+            --text-color: #1A1A1A;
+            --accent-color: #C0392B;
+            --secondary-bg: #EAE3D5;
+            --border-color: #d0c8b6;
+            --font-heading: 'Playfair Display', serif;
+            --font-body: 'Source Serif 4', serif;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme: Election Night */
+            --bg-color: #0b0c10;
+            --text-color: #f8f8f2;
+            --accent-color: #f1c40f; /* Gold */
+            --secondary-bg: #1f2833;
+            --border-color: #45a29e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: none; /* Hide default cursor for ink trail */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+            font-weight: 700;
+        }
+
+        /* Ink Cursor Trail */
+        #cursor-layer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .ink-splat {
+            position: absolute;
+            background-color: var(--text-color);
+            border-radius: 50%;
+            filter: blur(1px);
+            opacity: 0.8;
+            transform: translate(-50%, -50%);
+            animation: fadeOut 1s forwards;
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        .cursor-main {
+            position: fixed;
+            width: 12px; height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10000;
+            transition: width 0.2s, height 0.2s;
+        }
+        
+        button:hover ~ #cursor-layer .cursor-main,
+        input:hover ~ #cursor-layer .cursor-main,
+        select:hover ~ #cursor-layer .cursor-main {
+            width: 20px; height: 20px;
+            mix-blend-mode: difference;
+        }
+
+        /* Top Navigation */
+        nav {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, var(--bg-color) 80%, transparent);
+            z-index: 1000;
+            border-bottom: 2px solid var(--text-color);
+        }
+        .nav-logo {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        select, button, input {
+            font-family: var(--font-body);
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 0;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* Layout & Snap Scrolling */
+        main {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+        }
+        section {
+            min-height: 100vh;
+            scroll-snap-align: start;
+            padding: 6rem 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px dashed var(--border-color);
+            position: relative;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Typography & Styles */
+        .editorial-title {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            border-bottom: 4px double var(--text-color);
+            padding-bottom: 1rem;
+        }
+        .editorial-sub {
+            font-size: 1.2rem;
+            text-align: center;
+            font-style: italic;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Journey Map (SVG Animation) */
+        .journey-map {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin: 4rem 0;
+            padding: 2rem 0;
+        }
+        .journey-step {
+            z-index: 2;
+            text-align: center;
+            background: var(--bg-color);
+            padding: 1rem;
+            border: 2px solid var(--text-color);
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        .journey-step:hover {
+            transform: scale(1.1);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        .step-num { font-weight: bold; font-size: 1.5rem; margin-bottom: 0.2rem; }
+        .step-label { font-size: 0.8rem; text-transform: uppercase; }
+        
+        .path-line {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            width: 90%;
+            height: 2px;
+            background: transparent;
+            z-index: 1;
+        }
+        .path-line svg {
+            width: 100%;
+            height: 20px;
+            overflow: visible;
+        }
+        path.animated-line {
+            fill: transparent;
+            stroke: var(--accent-color);
+            stroke-width: 4;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 2s ease-in-out;
+        }
+        .draw path.animated-line {
+            stroke-dashoffset: 0;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 2rem 0;
+            gap: 2rem;
+        }
+        .timeline-item {
+            min-width: 250px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent-color);
+            background: var(--secondary-bg);
+            transition: all 0.3s;
+        }
+        .timeline-item:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            cursor: pointer;
+        }
+        .timeline-date { font-weight: bold; margin-bottom: 0.5rem; }
+
+        /* Generic Panels */
+        .panel {
+            background: var(--secondary-bg);
+            border: 2px solid var(--text-color);
+            padding: 2rem;
+            width: 100%;
+            box-shadow: 8px 8px 0px var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        /* Forms & Inputs */
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        /* Chatbot */
+        .chat-container {
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            margin-bottom: 1rem;
+        }
+        .msg {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            max-width: 80%;
+            border-radius: 4px;
+        }
+        .msg.user {
+            background: var(--border-color);
+            color: var(--text-color);
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+        .msg.bot {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border-bottom-left-radius: 0;
+            font-family: monospace; /* Typewriter feel */
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .chat-chips {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .chip {
+            font-size: 0.8rem;
+            border-radius: 20px;
+            background: transparent;
+        }
+
+        /* Scanner */
+        .scanner-area {
+            border: 2px dashed var(--accent-color);
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+        }
+        .scanner-area input[type="file"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer;
+        }
+        #scanner-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-color);
+            border: 1px solid var(--text-color);
+            min-height: 100px;
+        }
+
+        /* Quiz */
+        .quiz-opt {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+        }
+        .quiz-opt:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .stamp-reveal {
+            font-family: var(--font-heading);
+            color: var(--accent-color);
+            font-size: 3rem;
+            text-transform: uppercase;
+            border: 4px solid var(--accent-color);
+            padding: 1rem;
+            display: inline-block;
+            transform: rotate(-15deg);
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .stamp-reveal.show {
+            opacity: 1;
+            transform: rotate(-5deg) scale(1.1);
+        }
+        
+    </style>
+</head>
+<body>
+
+    <!-- Ink Cursor -->
+    <div id="cursor-layer">
+        <div class="cursor-main" id="cursor-main"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo">The Ballot Journey</div>
+        <div class="controls">
+            <select id="lang-select">
+                <option value="English">English</option>
+                <option value="Hindi">हिंदी</option>
+                <option value="Gujarati">ગુજરાતી</option>
+            </select>
+            <button id="theme-toggle">🌙 Election Night Mode</button>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero / Setup Section -->
+        <section id="hero">
+            <div class="container">
+                <h1 class="editorial-title">The Ballot<br>Journey</h1>
+                <p class="editorial-sub">Your interactive guide to the Indian democratic process. Discover the path from citizen to voter.</p>
+                
+                <!-- Configuration UI removed as API Key is now injected via environment variable -->
+                <p>Scroll down to begin ⬇</p>
+            </div>
+        </section>
+
+        <!-- Journey Map Section -->
+        <section id="journey-section">
+            <div class="container">
+                <h2 class="editorial-title" style="font-size: 2.5rem; border: none;">The 5 Steps of Democracy</h2>
+                
+                <div class="journey-map" id="journey-map-container">
+                    <div class="path-line">
+                        <svg viewBox="0 0 1000 20" preserveAspectRatio="none">
+                            <path class="animated-line" d="M 0 10 Q 250 -10 500 10 T 1000 10" />
+                        </svg>
+                    </div>
+                    
+                    <div class="journey-step">
+                        <span class="step-num">01</span>
+                        <span class="step-label">Register</span>
+                    </div>
+                    <div class="journey-step">
+                        <span class="step-num">02</span>
+                        <span class="step-label">Campaign</span>
+                    </div>
+                    <div class="journey-step">
+                        <span class="step-num">03</span>
+                        <span class="step-label">Vote</span>
+                    </div>
+                    <div class="journey-step">
+                        <span class="step-num">04</span>
+                        <span class="step-label">Count</span>
+                    </div>
+                    <div class="journey-step">
+                        <span class="step-num">05</span>
+                        <span class="step-label">Result</span>
+                    </div>
+                </div>
+                <p style="text-align: center; max-width: 600px; margin: 0 auto;">From filing Form 6 to the declaration of results by the ECI, every step is crucial. This is your journey.</p>
+            </div>
+        </section>
+
+        <!-- Timeline Section -->
+        <section id="timeline">
+            <div class="container">
+                <h2 style="margin-bottom: 2rem;">Lok Sabha Election Timeline</h2>
+                <div class="timeline-container">
+                    <div class="timeline-item" onclick="explainTimeline('Notification')">
+                        <div class="timeline-date">Phase 1: Notification</div>
+                        <p>The President issues the notification calling upon constituencies to elect members.</p>
+                    </div>
+                    <div class="timeline-item" onclick="explainTimeline('Nomination')">
+                        <div class="timeline-date">Phase 2: Nomination</div>
+                        <p>Candidates file their nomination papers along with an affidavit.</p>
+                    </div>
+                    <div class="timeline-item" onclick="explainTimeline('Scrutiny')">
+                        <div class="timeline-date">Phase 3: Scrutiny</div>
+                        <p>Returning Officer examines the papers for validity.</p>
+                    </div>
+                    <div class="timeline-item" onclick="explainTimeline('Polling')">
+                        <div class="timeline-date">Phase 4: Polling</div>
+                        <p>The actual voting day using Electronic Voting Machines (EVMs).</p>
+                    </div>
+                </div>
+                <div id="timeline-explanation" class="panel" style="margin-top: 2rem; display: none;">
+                    <!-- Gemini response injection -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Scanner Section -->
+        <section id="scanner">
+            <div class="container">
+                <h2 style="margin-bottom: 1rem;">Ballot & Document Scanner</h2>
+                <p style="margin-bottom: 2rem;">Upload a photo of a Form 6, Voter ID slip, or sample EVM. The AI will explain its components.</p>
+                <div class="panel">
+                    <div class="scanner-area" id="drop-zone">
+                        <h3 id="upload-text">Click or Drop Image Here</h3>
+                        <input type="file" id="file-input" accept="image/*">
+                        <img id="preview-img" style="max-width: 100%; max-height: 200px; display: none; margin-top: 1rem;">
+                    </div>
+                    <button id="scan-btn" style="margin-top: 1rem; width: 100%; padding: 1rem; font-weight: bold; background: var(--text-color); color: var(--bg-color);">Analyze with AI</button>
+                    <div id="scanner-result" style="display: none;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quiz Section -->
+        <section id="quiz">
+            <div class="container" style="text-align: center;">
+                <h2 style="margin-bottom: 1rem;">Test Your Civic Knowledge</h2>
+                <p style="margin-bottom: 2rem;">Dynamic questions generated by Gemini about the Indian Election Process.</p>
+                <div class="panel" id="quiz-panel" style="text-align: left;">
+                    <button id="start-quiz-btn" style="padding: 1rem 2rem; font-size: 1.2rem;">Generate New Question</button>
+                    <div id="quiz-content" style="display: none; margin-top: 1rem;">
+                        <h3 id="q-text" style="margin-bottom: 1rem;">Loading question...</h3>
+                        <div id="q-options"></div>
+                    </div>
+                </div>
+                <div class="stamp-reveal" id="quiz-stamp">CERTIFIED VOTER</div>
+            </div>
+        </section>
+
+        <!-- Chatbot Section -->
+        <section id="chat">
+            <div class="container">
+                <h2>The Civic Guide</h2>
+                <p style="margin-bottom: 1rem;">Ask any questions regarding voting procedures, the Constitution, or political parties.</p>
+                <div class="panel chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="msg bot">Greetings citizen. I am your Civic Guide. How may I assist you with your democratic duties today?</div>
+                    </div>
+                    <div class="chat-chips">
+                        <button class="chip" onclick="sendChat('How do I register to vote?')">How do I register?</button>
+                        <button class="chip" onclick="sendChat('What is NOTA?')">What is NOTA?</button>
+                        <button class="chip" onclick="sendChat('How do EVMs work?')">How do EVMs work?</button>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Type your question...">
+                        <button id="chat-send">Send</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Constants & Global State
+        let apiKey = '$GEMINI_API_KEY';
+        let currentLang = 'English';
+        let chatHistory = [];
+        let correctAnswer = null;
+
+        // UI Elements
+        const langSelect = document.getElementById('lang-select');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        // --- 1. Basic Setup & Interactions ---
+
+        langSelect.addEventListener('change', (e) => currentLang = e.target.value);
+        
+        themeToggle.addEventListener('click', () => {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeToggle.innerText = '🌙 Election Night Mode';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeToggle.innerText = '☀ Daytime Register Mode';
+            }
+        });
+
+        // --- 2. Ink Splat Cursor ---
+        const cursorMain = document.getElementById('cursor-main');
+        const cursorLayer = document.getElementById('cursor-layer');
+        document.addEventListener('mousemove', (e) => {
+            cursorMain.style.left = e.clientX + 'px';
+            cursorMain.style.top = e.clientY + 'px';
+            
+            // Random ink splat
+            if (Math.random() > 0.8) {
+                const splat = document.createElement('div');
+                splat.classList.add('ink-splat');
+                splat.style.width = (Math.random() * 8 + 4) + 'px';
+                splat.style.height = splat.style.width;
+                splat.style.left = e.clientX + (Math.random() * 20 - 10) + 'px';
+                splat.style.top = e.clientY + (Math.random() * 20 - 10) + 'px';
+                cursorLayer.appendChild(splat);
+                setTimeout(() => splat.remove(), 1000);
+            }
+        });
+
+        // --- 3. Intersection Observers (SVG Animation) ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('draw');
+                }
+            });
+        }, { threshold: 0.5 });
+        observer.observe(document.getElementById('journey-map-container'));
+
+        // --- 4. Gemini API Service ---
+        async function callGemini(contents, systemInstructionText = null, isJson = false) {
+            if (!apiKey) {
+                alert("Please initialize your Civic Guide with a Gemini API key first.");
+                throw new Error("No API Key");
+            }
+            
+            const payload = { contents };
+            if (systemInstructionText) {
+                payload.systemInstruction = {
+                    parts: [{ text: systemInstructionText }]
+                };
+            }
+            if (isJson) {
+                payload.generationConfig = { responseMimeType: "application/json" };
+            }
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                console.error("Gemini API Error:", err);
+                const errorMsg = err.error && err.error.message ? err.error.message : "Failed to communicate with the Civic Guide.";
+                throw new Error(errorMsg);
+            }
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        // --- 5. Timeline Logic ---
+        window.explainTimeline = async (phase) => {
+            const explanationPanel = document.getElementById('timeline-explanation');
+            explanationPanel.style.display = 'block';
+            explanationPanel.innerHTML = '<i>The Civic Guide is analyzing archives...</i>';
+            explanationPanel.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+
+            try {
+                const res = await callGemini(
+                    [{ role: "user", parts: [{ text: `Explain the "${phase}" phase of an Indian Lok Sabha Election in exactly two short sentences.` }] }],
+                    `You are an expert on Indian democracy. You must reply in ${currentLang}.`
+                );
+                explanationPanel.innerHTML = `<strong>Phase ${phase}:</strong> ${res}`;
+            } catch (e) {
+                explanationPanel.innerHTML = `<span style="color:red">${e.message}</span>`;
+            }
+        };
+
+        // --- 6. Scanner Logic ---
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const uploadText = document.getElementById('upload-text');
+        const scanBtn = document.getElementById('scan-btn');
+        const scannerResult = document.getElementById('scanner-result');
+        let currentBase64 = null;
+        let currentMime = null;
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            currentMime = file.type;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentBase64 = event.target.result.split(',')[1];
+                previewImg.src = event.target.result;
+                previewImg.style.display = 'block';
+                uploadText.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        });
+
+        scanBtn.addEventListener('click', async () => {
+            if (!currentBase64) {
+                alert("Please upload an image first."); return;
+            }
+            scannerResult.style.display = 'block';
+            scannerResult.innerHTML = '<i>Scanning document...</i>';
+            try {
+                const res = await callGemini([
+                    {
+                        role: "user",
+                        parts: [
+                            { text: "What is this election document/object? What are its key elements in the context of Indian elections?" },
+                            { inlineData: { mimeType: currentMime, data: currentBase64 } }
+                        ]
+                    }
+                ], `You are a helpful expert. Answer in ${currentLang}. Keep it under 100 words.`);
+                scannerResult.innerHTML = res;
+            } catch(e) {
+                scannerResult.innerHTML = `<span style="color:red">${e.message}</span>`;
+            }
+        });
+
+        // --- 7. Quiz Engine ---
+        document.getElementById('start-quiz-btn').addEventListener('click', async () => {
+            const qContent = document.getElementById('quiz-content');
+            const qText = document.getElementById('q-text');
+            const qOptions = document.getElementById('q-options');
+            const stamp = document.getElementById('quiz-stamp');
+            
+            stamp.classList.remove('show');
+            qContent.style.display = 'block';
+            qText.innerText = 'The Civic Guide is generating a new question...';
+            qOptions.innerHTML = '';
+            
+            try {
+                const schemaPrompt = `Generate a Multiple Choice Question regarding the Indian election process (history, EVM, ECI, Form 6, NOTA).
+Return ONLY a valid JSON object matching this schema: 
+{ "question": "String", "options": ["String", "String", "String", "String"], "correctIndex": Number (0-3) }`;
+
+                const res = await callGemini(
+                    [{ role: "user", parts: [{ text: schemaPrompt }] }],
+                    `You are a quiz master. Create challenging questions. The output must be valid JSON in ${currentLang}.`,
+                    true
+                );
+                
+                const quizData = JSON.parse(res);
+                qText.innerText = quizData.question;
+                correctAnswer = quizData.correctIndex;
+                
+                quizData.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'quiz-opt';
+                    btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(idx);
+                    qOptions.appendChild(btn);
+                });
+
+            } catch (e) {
+                 qText.innerHTML = `<span style="color:red">${e.message}</span>`;
+            }
+        });
+
+        function checkAnswer(selectedIdx) {
+            if (selectedIdx === correctAnswer) {
+                document.getElementById('quiz-stamp').classList.add('show');
+            } else {
+                alert("Incorrect! Review the material and try again.");
+            }
+        }
+
+        // --- 8. Chat Engine ---
+        const chatInput = document.getElementById('chat-input');
+        const chatSend = document.getElementById('chat-send');
+        const chatMessages = document.getElementById('chat-messages');
+
+        function appendMessage(text, sender) {
+            const d = document.createElement('div');
+            d.className = `msg ${sender}`;
+            d.innerText = text;
+            chatMessages.appendChild(d);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function processChat(text) {
+            if (!text.trim()) return;
+            appendMessage(text, 'user');
+            chatInput.value = '';
+            
+            chatHistory.push({ role: "user", parts: [{ text }] });
+            
+            const typingIndicatorId = 'msg-' + Date.now();
+            const d = document.createElement('div');
+            d.id = typingIndicatorId;
+            d.className = 'msg bot';
+            d.innerText = '...';
+            chatMessages.appendChild(d);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const res = await callGemini(
+                    chatHistory,
+                    `You are the 'Civic Guide', a knowledgeable, enthusiastic assistant helping a young Indian citizen understand elections. Reply concisely in ${currentLang}.`
+                );
+                chatHistory.push({ role: "model", parts: [{ text: res }] });
+                
+                // Typewriter effect
+                const botBox = document.getElementById(typingIndicatorId);
+                botBox.innerText = '';
+                let index = 0;
+                const typing = setInterval(() => {
+                    botBox.innerText += res.charAt(index);
+                    index++;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    if (index >= res.length) clearInterval(typing);
+                }, 20);
+
+            } catch (e) {
+                document.getElementById(typingIndicatorId).innerHTML = `<span style="color:red">${e.message}</span>`;
+            }
+        }
+
+        chatSend.addEventListener('click', () => processChat(chatInput.value));
+        chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') processChat(chatInput.value); });
+        window.sendChat = (msg) => processChat(msg);
+    </script>
+</body>
+</html>
