@@ -4,13 +4,18 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy our application
-COPY index.html /usr/share/nginx/html/index.html
+COPY index.html sw.js manifest.json /usr/share/nginx/html/
 
-# Copy our custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy our custom nginx config template
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 # Expose port (Cloud Run defaults to 8080)
 EXPOSE 8080
 
-# Run envsubst to replace $GEMINI_API_KEY with the runtime environment variable, then start nginx
-CMD envsubst '${GEMINI_API_KEY}' < /usr/share/nginx/html/index.html > /tmp/index.html && mv /tmp/index.html /usr/share/nginx/html/index.html && nginx -g "daemon off;"
+# Copy our custom injection script to the entrypoint directory
+# Nginx image runs all scripts in this folder before starting
+COPY inject-keys.sh /docker-entrypoint.d/40-inject-keys.sh
+RUN chmod +x /docker-entrypoint.d/40-inject-keys.sh
+
+# The nginx:alpine image natively runs envsubst on templates
+CMD ["nginx", "-g", "daemon off;"]

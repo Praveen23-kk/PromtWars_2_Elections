@@ -1,0 +1,16 @@
+{
+  "name": "The Ballot Journey",
+  "short_name": "BallotJourney",
+  "description": "Interactive guide to the Indian democratic process.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F0E8",
+  "theme_color": "#C0392B",
+  "icons": [
+    {
+      "src": "https://www.gstatic.com/images/branding/product/2x/googleg_64dp.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}

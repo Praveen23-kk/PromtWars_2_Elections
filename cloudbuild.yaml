@@ -1,4 +1,9 @@
 steps:
+  # Run Automated Tests
+  - name: 'python:3.10-slim'
+    entrypoint: 'python'
+    args: ['-m', 'unittest', 'test_server.py']
+    
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/ballot-journey-repo/the-ballot-journey:$COMMIT_SHA', '.']
