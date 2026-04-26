@@ -60,6 +60,29 @@ class TestBallotJourneyServer(unittest.TestCase):
                 self.assertEqual(response.status, 200)
                 self.assertGreater(len(response.read()), 0)
 
+    def test_accessibility_elements(self):
+        """Test that index.html contains essential accessibility and semantic tags"""
+        req = urllib.request.Request(f"http://localhost:{TEST_PORT}/")
+        with urllib.request.urlopen(req) as response:
+            html = response.read().decode('utf-8')
+            # Check for semantic main
+            self.assertIn('id="main-content"', html)
+            # Check for ARIA labels
+            self.assertIn('aria-label=', html)
+            # Check for skip link
+            self.assertIn('class="skip-link"', html)
+            # Check for language attribute
+            self.assertIn('<html lang="en"', html)
+
+    def test_manifest_validity(self):
+        """Test that manifest.json is valid JSON and has required fields"""
+        req = urllib.request.Request(f"http://localhost:{TEST_PORT}/manifest.json")
+        with urllib.request.urlopen(req) as response:
+            manifest = json.loads(response.read().decode('utf-8'))
+            self.assertIn('name', manifest)
+            self.assertIn('short_name', manifest)
+            self.assertIn('display', manifest)
+
 
 if __name__ == '__main__':
     unittest.main()
